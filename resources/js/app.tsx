@@ -5,11 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import '../css/app.css';
 import { initializeTheme } from '@/hooks/use-appearance';
-import { configureEcho } from '@laravel/echo-react';
-import "./echo";
-configureEcho({
-    broadcaster: 'reverb',
-});
+import './echo';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Club Cricket Of Chicago';
 
