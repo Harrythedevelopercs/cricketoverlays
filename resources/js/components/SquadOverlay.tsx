@@ -1,4 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
+const defaultPlayers = [
+    { name: 'VIRAT KOHLI', role: 'BATTER' },
+    { name: 'ROHIT SHARMA', role: 'CAPTAIN' },
+    { name: 'KL RAHUL', role: 'WICKET KEEPER' },
+    { name: 'SURYAKUMAR YADAV', role: 'BATTER' },
+    { name: 'HARDIK PANDYA', role: 'ALL ROUNDER' },
+    { name: 'RAVINDRA JADEJA', role: 'ALL ROUNDER' },
+    { name: 'AXAR PATEL', role: 'ALL ROUNDER' },
+    { name: 'R ASHWIN', role: 'BOWLER' },
+    { name: 'JASPRIT BUMRAH', role: 'BOWLER' },
+    { name: 'MOHAMMAD SHAMI', role: 'BOWLER' },
+    { name: 'MOHAMMED SIRAJ', role: 'BOWLER' },
+];
+
+const roleLabel = (role?: string) => {
+    if (!role || role === 'Player') {
+        return 'PLAYING XI';
+    }
+
+    return role.replace(/\//g, ' / ').toUpperCase();
+};
+
+const isFeaturedPlayer = (role?: string) => {
+    const normalizedRole = role?.toLowerCase() || '';
+
+    return (
+        normalizedRole.includes('captain') ||
+        normalizedRole.includes('wicket keeper')
+    );
+};
 
 export default function SquadOverlay({
     show,
@@ -12,127 +43,137 @@ export default function SquadOverlay({
     useEffect(() => {
         if (show) {
             setVisible(true);
-        } else {
-            setTimeout(() => setVisible(false), 500);
+            return;
         }
+
+        const timeout = window.setTimeout(() => setVisible(false), 500);
+
+        return () => window.clearTimeout(timeout);
     }, [show]);
 
-    if (!visible) {
-return null;
-}
-
-    // Default mock data if no props are passed
-    const defaultPlayers = [
-        { name: 'VIRAT KOHLI', role: 'BATSMAN' },
-        { name: 'ROHIT SHARMA', role: 'CAPTAIN' },
-        { name: 'KL RAHUL', role: 'WICKETKEEPER' },
-        { name: 'SURYAKUMAR YADAV', role: 'BATSMAN' },
-        { name: 'HARDIK PANDYA', role: 'ALL-ROUNDER' },
-        { name: 'RAVINDRA JADEJA', role: 'ALL-ROUNDER' },
-        { name: 'AXAR PATEL', role: 'ALL-ROUNDER' },
-        { name: 'R ASHWIN', role: 'BOWLER' },
-        { name: 'JASPRIT BUMRAH', role: 'BOWLER' },
-        { name: 'MOHAMMAD SHAMI', role: 'BOWLER' },
-        { name: 'MOHAMMED SIRAJ', role: 'BOWLER' },
-    ];
-
-    const displayPlayers = players || defaultPlayers;
-    const displayTeamName = teamName || 'INDIA';
+    const displayPlayers = useMemo(
+        () => (players?.length ? players : defaultPlayers).slice(0, 11),
+        [players],
+    );
+    const displayTeamName = teamName || 'TEAM SQUAD';
     const displayLogo =
-        logo || 'https://placehold.co/200x200/111/white?text=LOGO';
+        logo || 'https://placehold.co/240x240/12351e/white?text=TEAM';
+
+    if (!visible) {
+        return null;
+    }
 
     return (
-        <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center font-sans">
-            {/* Dark gradient background */}
+        <div className="pointer-events-none fixed inset-0 z-[75] overflow-hidden bg-[#06101c] font-sans text-white">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(89,143,255,0.28),transparent_28%),linear-gradient(180deg,rgba(33,64,128,0.9)_0%,rgba(5,12,22,0.92)_62%,rgba(0,0,0,0.98)_100%)]" />
+            <div className="absolute inset-x-0 bottom-0 h-[34%] bg-[linear-gradient(0deg,rgba(0,0,0,0.9),rgba(0,0,0,0)),repeating-linear-gradient(90deg,rgba(255,255,255,0.10)_0_1px,transparent_1px_70px)] opacity-70" />
             <div
-                className={`pointer-events-auto absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-500 ${show ? 'opacity-100' : 'opacity-0'}`}
-                onClick={onClose}
-            ></div>
-
-            {/* Main Panel */}
-            <div
-                className={`relative flex h-[650px] w-[1000px] transform transition-all duration-700 ${show ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-10 scale-95 opacity-0'}`}
+                className={`absolute top-1/2 left-1/2 h-[720px] w-[1320px] -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ${show ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
             >
-                {/* Left Side: Team Logo & Name */}
-                <div className="relative flex w-[35%] flex-col items-center justify-center overflow-hidden rounded-l-xl border-y-4 border-l-4 border-[#ffb703] bg-gradient-to-b from-[#0a192f] to-[#020c1b] p-8 text-white shadow-[0_0_50px_rgba(0,0,0,0.9)]">
-                    {/* Abstract background design */}
-                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDBsNDAgNDBNMCA0MGw0MC00MCIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjEiIG9wYWNpdHk9IjAuNSIvPjwvc3ZnPg==')] opacity-20"></div>
-
+                <div className="absolute top-0 left-0 z-20 flex h-44 w-44 items-center justify-center rounded-full border-[8px] border-[#dbe7e8] bg-[#12351e] shadow-[0_0_0_8px_rgba(80,140,220,0.35),0_14px_34px_rgba(0,0,0,0.55)]">
                     <img
                         src={displayLogo}
-                        className="relative z-10 mb-8 h-48 w-48 object-contain drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)]"
-                        alt="Team Logo"
+                        alt={displayTeamName}
+                        className="h-32 w-32 rounded-full object-contain"
                     />
+                </div>
 
-                    <h2 className="relative z-10 mb-2 text-center text-4xl font-black tracking-widest uppercase drop-shadow-lg">
-                        {displayTeamName}
-                    </h2>
-
-                    <div className="relative z-10 mt-4 rounded-sm bg-[#ffb703] px-6 py-2 text-sm font-black tracking-[0.4em] text-black uppercase shadow-lg">
-                        Playing XI
+                <div className="absolute top-[74px] right-0 left-[138px] h-[92px] rounded-tr-[34px] border-[6px] border-[#cfd8df] bg-gradient-to-b from-[#1a552d] via-[#11391f] to-[#071109] shadow-[inset_0_3px_0_rgba(255,255,255,0.24),0_12px_30px_rgba(0,0,0,0.5)]">
+                    <div className="flex h-full items-center px-12">
+                        <h1 className="truncate text-[56px] leading-none font-black tracking-wide text-white uppercase drop-shadow-[0_3px_2px_rgba(0,0,0,0.7)]">
+                            {displayTeamName}
+                        </h1>
                     </div>
                 </div>
 
-                {/* Right Side: Player List */}
-                <div className="relative flex w-[65%] flex-col overflow-hidden rounded-r-xl border-y-4 border-r-4 border-[#ffb703] bg-[#0f172a] shadow-[20px_0_50px_rgba(0,0,0,0.5)]">
-                    {/* Header */}
-                    <div className="relative z-20 flex items-center justify-between border-b border-[#334155] bg-[#1e293b] px-8 py-4 shadow-md">
-                        <h3 className="text-2xl font-black tracking-widest text-white uppercase">
-                            Squad Details
-                        </h3>
-                        <div className="flex space-x-2">
-                            <div className="h-3 w-3 rounded-full bg-red-500"></div>
-                            <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-                            <div className="h-3 w-3 rounded-full bg-green-500"></div>
+                <div className="absolute top-[160px] right-4 left-[70px] h-[520px] overflow-hidden rounded-br-[22px] rounded-bl-[22px] border-[5px] border-[#b8c4c9] bg-[#0c321b]/95 shadow-[0_18px_50px_rgba(0,0,0,0.6)]">
+                    <div className="grid h-14 grid-cols-[430px_1fr_150px_130px] border-b-4 border-[#aeb7bc] bg-gradient-to-r from-[#2e7b3f] via-[#28663a] to-[#14361f] text-[24px] font-black tracking-wider text-white uppercase">
+                        <div className="pl-[150px]" />
+                        <div className="flex items-center">
+                            Club Cricket of Chicago
+                        </div>
+                        <div className="flex items-center justify-center">
+                            No.
+                        </div>
+                        <div className="flex items-center justify-center">
+                            Role
                         </div>
                     </div>
 
-                    {/* Background Graphic */}
-                    <div className="pointer-events-none absolute right-0 bottom-0 h-64 w-64 opacity-5">
-                        <svg
-                            viewBox="0 0 100 100"
-                            fill="currentColor"
-                            className="h-full w-full text-white"
-                        >
-                            <path d="M50 0L100 50L50 100L0 50Z" />
-                        </svg>
+                    <div className="grid h-[410px] grid-cols-[430px_1fr_150px_130px] bg-[linear-gradient(90deg,rgba(12,44,23,0.98)_0_29%,rgba(32,93,45,0.95)_29%_77%,rgba(9,38,20,0.98)_77%)]">
+                        <div className="col-span-4 grid grid-rows-11">
+                            {displayPlayers.map(
+                                (player: any, index: number) => {
+                                    const featured = isFeaturedPlayer(
+                                        player.role,
+                                    );
+
+                                    return (
+                                        <div
+                                            key={
+                                                player.id ||
+                                                `${player.name}-${index}`
+                                            }
+                                            className={`grid grid-cols-[430px_1fr_150px_130px] border-b border-white/5 ${featured ? 'bg-gradient-to-r from-[#9d0000] via-[#c40000] to-[#8d0000]' : index % 2 === 0 ? 'bg-white/[0.035]' : 'bg-black/[0.08]'}`}
+                                            style={{
+                                                animation: `squadRowIn 0.45s ease-out forwards ${index * 0.045}s`,
+                                                opacity: 0,
+                                            }}
+                                        >
+                                            <div className="flex items-center truncate pl-7 text-[30px] leading-none font-black tracking-wide uppercase drop-shadow-[0_2px_1px_rgba(0,0,0,0.55)]">
+                                                {player.name ||
+                                                    `Player ${index + 1}`}
+                                            </div>
+                                            <div className="flex items-center truncate px-7 text-[24px] font-semibold tracking-wide text-white/80 uppercase">
+                                                {roleLabel(player.role)}
+                                            </div>
+                                            <div className="flex items-center justify-center text-[30px] font-black">
+                                                {String(index + 1).padStart(
+                                                    2,
+                                                    '0',
+                                                )}
+                                            </div>
+                                            <div className="flex items-center justify-center text-[19px] font-black tracking-widest text-white/75 uppercase">
+                                                XI
+                                            </div>
+                                        </div>
+                                    );
+                                },
+                            )}
+                        </div>
                     </div>
 
-                    {/* Players Grid */}
-                    <div className="relative z-10 grid flex-1 grid-cols-2 content-start gap-x-8 gap-y-4 overflow-hidden p-8">
-                        {displayPlayers.map((player: any, idx: number) => (
-                            <div
-                                key={idx}
-                                className="flex items-center space-x-4 rounded-r border-l-[6px] border-[#38bdf8] bg-gradient-to-r from-[#1e293b] to-transparent p-3 transition-colors duration-300 hover:border-[#ffb703]"
-                                style={{
-                                    animation: `fadeInRight 0.5s ease-out forwards ${idx * 0.05}s`,
-                                    opacity: 0,
-                                }}
-                            >
-                                <style>{`
-                                    @keyframes fadeInRight {
-                                        from { opacity: 0; transform: translateX(20px); }
-                                        to { opacity: 1; transform: translateX(0); }
-                                    }
-                                `}</style>
-                                <div className="flex h-10 w-10 items-center justify-center rounded border border-[#334155] bg-[#0f172a] text-lg font-black text-[#38bdf8] shadow-inner">
-                                    {idx + 1}
-                                </div>
-                                <div className="flex flex-col justify-center">
-                                    <span className="text-[17px] leading-tight font-bold tracking-wider text-white uppercase">
-                                        {player.name}
-                                    </span>
-                                    {player.role && (
-                                        <span className="mt-1 text-[11px] font-black tracking-widest text-[#94a3b8] uppercase">
-                                            {player.role}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
+                    <div className="grid h-[86px] grid-cols-[260px_1fr_300px_270px] border-t-4 border-[#aeb7bc] bg-gradient-to-b from-[#f2f4f2] to-[#bfc6c5] text-black">
+                        <div className="flex items-center px-10 text-[30px] font-black uppercase">
+                            Squad
+                        </div>
+                        <div className="flex items-center justify-center text-[30px] font-black uppercase">
+                            Playing XI
+                        </div>
+                        <div className="flex items-center justify-center border-l border-black/15 text-[30px] font-black uppercase">
+                            Players
+                        </div>
+                        <div className="flex items-center justify-center border-l border-black/15 text-[48px] font-black">
+                            {displayPlayers.length}
+                        </div>
                     </div>
                 </div>
+
+                <button
+                    className="pointer-events-auto absolute top-[174px] right-8 z-30 h-9 w-9 rounded bg-black/35 text-sm font-black text-white hover:bg-black/55"
+                    onClick={onClose}
+                    type="button"
+                >
+                    X
+                </button>
             </div>
+
+            <style>{`
+                @keyframes squadRowIn {
+                    from { opacity: 0; transform: translateX(28px); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+            `}</style>
         </div>
     );
 }
