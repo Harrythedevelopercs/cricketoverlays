@@ -1,3 +1,4 @@
+import type { MutableRefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import BatsmanCareerOverlay from '@/components/BatsmanCareerOverlay';
 import BatsmanStatsOverlay from '@/components/BatsmanStatsOverlay';
@@ -60,6 +61,49 @@ export default function Live({ livestream }: { livestream: any }) {
     const inningsBreakTimeoutRef = useRef<number | null>(null);
     const drinksBreakTimeoutRef = useRef<number | null>(null);
     const scorebarRequestInFlightRef = useRef(false);
+
+    const fallbackPartnershipData = () => ({
+        title: livestream?.title || 'Match Partnership',
+        teamName:
+            scorebarData?.battingTeam ||
+            scorebarData?.teamName ||
+            livestream?.team_one_title,
+        score: scorebarData?.score || '0-0',
+        overs: scorebarData?.overs || '0.0',
+        runs: 0,
+        balls: 0,
+        runRate: '0.00',
+        players: scorebarData?.batters || [],
+        recent: scorebarData?.recent || [],
+    });
+
+    const fallbackWormData = () => ({
+        title: livestream?.title || 'Match Worm',
+        innings: [
+            {
+                teamName: livestream?.team_one_title || 'Team One',
+                score: '0-0',
+                overs: '0.0',
+                points: [{ over: 0, runs: 0, wickets: 0 }],
+            },
+            {
+                teamName: livestream?.team_two_title || 'Team Two',
+                score: '0-0',
+                overs: '0.0',
+                points: [{ over: 0, runs: 0, wickets: 0 }],
+            },
+        ],
+    });
+
+    const scheduleOverlayHide = (
+        timeoutRef: MutableRefObject<number | null>,
+    ) => {
+        timeoutRef.current = window.setTimeout(() => {
+            setShowPartnership(false);
+            setShowOverByOver(false);
+            setShowWorm(false);
+        }, OVERLAY_AUTO_HIDE_MS);
+    };
 
     const clearOverlayTimeouts = () => {
         [
@@ -418,20 +462,20 @@ export default function Live({ livestream }: { livestream: any }) {
 
     const openPartnership = async () => {
         hideActiveOverlays();
-        setPartnershipData(null);
+        setPartnershipData(fallbackPartnershipData());
+        setShowPartnership(true);
 
         const nextPartnershipData = await fetchPartnershipData();
 
-        if (!nextPartnershipData) {
-            return;
+        if (nextPartnershipData) {
+            setPartnershipData(nextPartnershipData);
+        } else {
+            console.warn(
+                'Partnership data unavailable; showing fallback overlay.',
+            );
         }
 
-        setPartnershipData(nextPartnershipData);
-        setShowPartnership(true);
-
-        partnershipTimeoutRef.current = window.setTimeout(() => {
-            setShowPartnership(false);
-        }, OVERLAY_AUTO_HIDE_MS);
+        scheduleOverlayHide(partnershipTimeoutRef);
     };
 
     const openThisOver = async () => {
@@ -454,38 +498,36 @@ export default function Live({ livestream }: { livestream: any }) {
 
     const openWorm = async () => {
         hideActiveOverlays();
-        setWormData(null);
+        setWormData(fallbackWormData());
+        setShowWorm(true);
 
         const nextWormData = await fetchWormData();
 
-        if (!nextWormData) {
-            return;
+        if (nextWormData) {
+            setWormData(nextWormData);
+        } else {
+            console.warn('Worm data unavailable; showing fallback overlay.');
         }
 
-        setWormData(nextWormData);
-        setShowWorm(true);
-
-        wormTimeoutRef.current = window.setTimeout(() => {
-            setShowWorm(false);
-        }, OVERLAY_AUTO_HIDE_MS);
+        scheduleOverlayHide(wormTimeoutRef);
     };
 
     const openOverByOver = async () => {
         hideActiveOverlays();
-        setWormData(null);
+        setWormData(fallbackWormData());
+        setShowOverByOver(true);
 
         const nextWormData = await fetchWormData();
 
-        if (!nextWormData) {
-            return;
+        if (nextWormData) {
+            setWormData(nextWormData);
+        } else {
+            console.warn(
+                'Over by over data unavailable; showing fallback overlay.',
+            );
         }
 
-        setWormData(nextWormData);
-        setShowOverByOver(true);
-
-        overByOverTimeoutRef.current = window.setTimeout(() => {
-            setShowOverByOver(false);
-        }, OVERLAY_AUTO_HIDE_MS);
+        scheduleOverlayHide(overByOverTimeoutRef);
     };
 
     useEffect(() => {
@@ -541,6 +583,7 @@ export default function Live({ livestream }: { livestream: any }) {
         const channel = echo.channel(`livestream.${livestream.id}`);
 
         channel.listen('.ScoreboardUpdated', (e: any) => {
+            console.info('ScoreboardUpdated received', e.type);
             setData(e.livestream);
 
             if (e.type === 'FOUR' || e.type === 'SIX' || e.type === 'WICKET') {
