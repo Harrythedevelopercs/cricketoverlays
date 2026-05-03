@@ -679,6 +679,8 @@ class LivestreamController extends Controller
             'score' => str_replace('/', '-', Arr::get($innings, 'rcb', '0-0')),
             'overs' => Arr::get($innings, 'overs', '0.0'),
             'extras' => Arr::get($innings, 'extras', 0),
+            'runRate' => Arr::get($innings, 'runRate'),
+            'requiredRunRate' => Arr::get($innings, 'rrr'),
             'players' => array_map(
                 fn ($player) => $this->normalizeSquadPlayer($player, $captainId, $wicketKeeperId),
                 Arr::get($innings, 'batting', [])

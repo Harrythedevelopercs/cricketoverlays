@@ -117,6 +117,31 @@ const isDismissed = (status?: string) => {
 const statValue = (value: unknown) =>
     value === null || value === undefined || value === '' ? '-' : String(value);
 
+const numericValue = (value: unknown): number => {
+    if (typeof value === 'number') {
+        return value;
+    }
+
+    if (typeof value === 'string') {
+        const parsed = Number(value);
+
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    if (Array.isArray(value)) {
+        return value.reduce((sum, item) => sum + numericValue(item), 0);
+    }
+
+    if (typeof value === 'object' && value !== null) {
+        return Object.values(value).reduce(
+            (sum, item) => sum + numericValue(item),
+            0,
+        );
+    }
+
+    return 0;
+};
+
 export default function SquadOverlay({
     show,
     teamName,
@@ -124,6 +149,8 @@ export default function SquadOverlay({
     score,
     overs,
     extras,
+    runRate,
+    requiredRunRate,
     players,
     onClose,
 }: any) {
@@ -150,10 +177,12 @@ export default function SquadOverlay({
     const scoreParts = String(score || '').split('-');
     const providedRuns = Number(scoreParts[0]);
     const providedWickets = Number(scoreParts[1]);
-    const totalRuns = displayPlayers.reduce(
-        (sum: number, player: any) => sum + (Number(player.runs) || 0),
-        0,
-    );
+    const extrasRuns = numericValue(extras);
+    const totalRuns =
+        displayPlayers.reduce(
+            (sum: number, player: any) => sum + (Number(player.runs) || 0),
+            0,
+        ) + extrasRuns;
     const wickets = displayPlayers.filter((player: any) =>
         isDismissed(player.status),
     ).length;
@@ -161,14 +190,21 @@ export default function SquadOverlay({
         (sum: number, player: any) => sum + (Number(player.balls) || 0),
         0,
     );
-    const displayRuns = Number.isFinite(providedRuns)
-        ? providedRuns
-        : totalRuns;
-    const displayWickets = Number.isFinite(providedWickets)
-        ? providedWickets
-        : wickets;
+    const hasUsableProvidedScore =
+        Number.isFinite(providedRuns) &&
+        (providedRuns > 0 || totalRuns === 0) &&
+        !(providedRuns === 0 && totalRuns > 0);
+    const displayRuns = hasUsableProvidedScore ? providedRuns : totalRuns;
+    const displayWickets =
+        hasUsableProvidedScore && Number.isFinite(providedWickets)
+            ? providedWickets
+            : wickets;
     const displayOvers =
         overs || `${Math.floor(totalBalls / 6)}.${totalBalls % 6}`;
+    const calculatedRunRate =
+        totalBalls > 0 ? ((displayRuns / totalBalls) * 6).toFixed(2) : '0.00';
+    const displayRunRate = runRate || calculatedRunRate;
+    const displayRequiredRunRate = requiredRunRate || '-';
 
     if (!visible) {
         return null;
@@ -274,15 +310,21 @@ export default function SquadOverlay({
                         })}
                     </div>
 
-                    <div className="grid h-16 grid-cols-[220px_1fr_240px_260px] items-center border-t border-white/15 bg-[#e8ebef] text-black">
+                    <div className="grid h-16 grid-cols-[190px_190px_1fr_210px_230px_240px] items-center border-t border-white/15 bg-[#e8ebef] text-black">
                         <div className="px-8 text-2xl font-black uppercase">
-                            Extras {statValue(extras)}
+                            Extras {extrasRuns}
+                        </div>
+                        <div className="flex h-full items-center justify-center border-l border-black/15 text-2xl font-black uppercase">
+                            RR {displayRunRate}
                         </div>
                         <div className="flex h-full items-center justify-center border-l border-black/15 text-2xl font-black uppercase">
                             Balls {totalBalls}
                         </div>
                         <div className="flex h-full items-center justify-center border-l border-black/15 text-2xl font-black uppercase">
                             Overs {displayOvers}
+                        </div>
+                        <div className="flex h-full items-center justify-center border-l border-black/15 text-2xl font-black uppercase">
+                            RRR {displayRequiredRunRate}
                         </div>
                         <div className="flex h-full items-center justify-center border-l border-black/15 text-4xl font-black">
                             {displayRuns}-{displayWickets}

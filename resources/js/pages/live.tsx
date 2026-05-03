@@ -745,6 +745,8 @@ export default function Live({ livestream }: { livestream: any }) {
                 score={squadData?.score}
                 overs={squadData?.overs}
                 extras={squadData?.extras}
+                runRate={squadData?.runRate}
+                requiredRunRate={squadData?.requiredRunRate}
                 players={squadData?.players}
             />
 
