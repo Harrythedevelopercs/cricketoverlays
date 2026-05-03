@@ -121,6 +121,9 @@ export default function SquadOverlay({
     show,
     teamName,
     logo,
+    score,
+    overs,
+    extras,
     players,
     onClose,
 }: any) {
@@ -144,6 +147,9 @@ export default function SquadOverlay({
     const displayTeamName = teamName || 'Team Scorecard';
     const displayLogo =
         logo || 'https://placehold.co/240x240/101820/white?text=TEAM';
+    const scoreParts = String(score || '').split('-');
+    const providedRuns = Number(scoreParts[0]);
+    const providedWickets = Number(scoreParts[1]);
     const totalRuns = displayPlayers.reduce(
         (sum: number, player: any) => sum + (Number(player.runs) || 0),
         0,
@@ -155,7 +161,14 @@ export default function SquadOverlay({
         (sum: number, player: any) => sum + (Number(player.balls) || 0),
         0,
     );
-    const overs = `${Math.floor(totalBalls / 6)}.${totalBalls % 6}`;
+    const displayRuns = Number.isFinite(providedRuns)
+        ? providedRuns
+        : totalRuns;
+    const displayWickets = Number.isFinite(providedWickets)
+        ? providedWickets
+        : wickets;
+    const displayOvers =
+        overs || `${Math.floor(totalBalls / 6)}.${totalBalls % 6}`;
 
     if (!visible) {
         return null;
@@ -193,7 +206,7 @@ export default function SquadOverlay({
                                     Total
                                 </span>
                                 <span className="mt-1 text-5xl font-black">
-                                    {totalRuns}-{wickets}
+                                    {displayRuns}-{displayWickets}
                                 </span>
                             </div>
                             <div className="flex flex-col justify-center border-l border-white/10 px-5">
@@ -201,7 +214,7 @@ export default function SquadOverlay({
                                     Overs
                                 </span>
                                 <span className="mt-1 text-5xl font-black">
-                                    {overs}
+                                    {displayOvers}
                                 </span>
                             </div>
                         </div>
@@ -263,16 +276,16 @@ export default function SquadOverlay({
 
                     <div className="grid h-16 grid-cols-[220px_1fr_240px_260px] items-center border-t border-white/15 bg-[#e8ebef] text-black">
                         <div className="px-8 text-2xl font-black uppercase">
-                            Wickets {wickets}
+                            Extras {statValue(extras)}
                         </div>
                         <div className="flex h-full items-center justify-center border-l border-black/15 text-2xl font-black uppercase">
                             Balls {totalBalls}
                         </div>
                         <div className="flex h-full items-center justify-center border-l border-black/15 text-2xl font-black uppercase">
-                            Overs {overs}
+                            Overs {displayOvers}
                         </div>
                         <div className="flex h-full items-center justify-center border-l border-black/15 text-4xl font-black">
-                            {totalRuns}-{wickets}
+                            {displayRuns}-{displayWickets}
                         </div>
                     </div>
                 </div>

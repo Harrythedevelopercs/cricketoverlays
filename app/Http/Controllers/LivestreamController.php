@@ -176,11 +176,11 @@ class LivestreamController extends Controller
         $teamLogo = $isTeamTwo ? $livestream->team_two_logo : $livestream->team_one_logo;
         $cachedSquad = $isTeamTwo ? $livestream->team_two_squad : $livestream->team_one_squad;
 
-        if (is_array($cachedSquad) && $cachedSquad !== []) {
-            return response()->json($cachedSquad);
-        }
-
         if (! $livestream->match_id || ! $livestream->club_id) {
+            if (is_array($cachedSquad) && $cachedSquad !== []) {
+                return response()->json($cachedSquad);
+            }
+
             return response()->json([
                 'message' => 'Match ID and Club ID are required for squad data.',
             ], 422);
@@ -196,12 +196,20 @@ class LivestreamController extends Controller
                 'clubId' => $livestream->club_id,
             ]);
         } catch (ConnectionException $exception) {
+            if (is_array($cachedSquad) && $cachedSquad !== []) {
+                return response()->json($cachedSquad);
+            }
+
             return response()->json([
                 'message' => 'Unable to connect to CricClubs.',
             ], 502);
         }
 
         if (! $response->successful()) {
+            if (is_array($cachedSquad) && $cachedSquad !== []) {
+                return response()->json($cachedSquad);
+            }
+
             return response()->json([
                 'message' => 'CricClubs squad request failed.',
             ], 502);
@@ -210,6 +218,10 @@ class LivestreamController extends Controller
         $payload = $response->json();
 
         if (! Arr::get($payload, 'responseState')) {
+            if (is_array($cachedSquad) && $cachedSquad !== []) {
+                return response()->json($cachedSquad);
+            }
+
             return response()->json([
                 'message' => Arr::get($payload, 'errorMessage', 'CricClubs returned an invalid squad response.'),
             ], 502);
@@ -664,6 +676,9 @@ class LivestreamController extends Controller
         return [
             'teamName' => $teamName,
             'logo' => $teamLogo ? '/storage/'.$teamLogo : null,
+            'score' => str_replace('/', '-', Arr::get($innings, 'rcb', '0-0')),
+            'overs' => Arr::get($innings, 'overs', '0.0'),
+            'extras' => Arr::get($innings, 'extras', 0),
             'players' => array_map(
                 fn ($player) => $this->normalizeSquadPlayer($player, $captainId, $wicketKeeperId),
                 Arr::get($innings, 'batting', [])
@@ -684,7 +699,7 @@ class LivestreamController extends Controller
             'id' => $playerId,
             'name' => trim(Arr::get($player, 'firstName', '').' '.Arr::get($player, 'lastName', '')),
             'role' => $roles ? implode(' / ', $roles) : 'Player',
-            'status' => Arr::get($player, 'outStringNoLink') ?: (Arr::get($player, 'isOut') === '1' ? 'out' : 'not out'),
+            'status' => $this->squadPlayerStatus($player),
             'runs' => Arr::get($player, 'runsScored', ''),
             'balls' => Arr::get($player, 'ballsFaced', ''),
             'fours' => Arr::get($player, 'fours', ''),
@@ -692,6 +707,28 @@ class LivestreamController extends Controller
             'strikeRate' => Arr::get($player, 'strikeRate', ''),
             'image' => Arr::get($player, 'profilepic_file_path'),
         ];
+    }
+
+    private function squadPlayerStatus(array $player): string
+    {
+        $status = Arr::get($player, 'outStringNoLink');
+
+        if ($status) {
+            return $status;
+        }
+
+        if (Arr::get($player, 'isOut') === '1') {
+            return 'out';
+        }
+
+        $runs = Arr::get($player, 'runsScored');
+        $balls = Arr::get($player, 'ballsFaced');
+
+        if ($runs !== null || $balls !== null) {
+            return 'not out';
+        }
+
+        return 'yet to bat';
     }
 
     private function currentBatterFromScorebar(array $scorebarData): ?array

@@ -742,6 +742,9 @@ export default function Live({ livestream }: { livestream: any }) {
                 onClose={() => setShowSquad(false)}
                 teamName={squadData?.teamName}
                 logo={squadData?.logo}
+                score={squadData?.score}
+                overs={squadData?.overs}
+                extras={squadData?.extras}
                 players={squadData?.players}
             />
 
