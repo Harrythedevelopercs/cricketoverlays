@@ -25,10 +25,10 @@ export default function Login({
 }: Props) {
     return (
         <AuthLayout
-            title="Log in to your account"
-            description="Enter your email and password below to log in"
+            title="Welcome back"
+            description="Sign in to Club Cricket of Chicago overlays dashboard"
         >
-            <Head title="Log in" />
+            <Head title="Club Cricket of Chicago Login" />
 
             <Form
                 {...store.form()}
@@ -48,7 +48,7 @@ export default function Login({
                                     autoFocus
                                     tabIndex={1}
                                     autoComplete="email"
-                                    placeholder="email@example.com"
+                                    placeholder="admin@clubcricketofchicago.com"
                                 />
                                 <InputError message={errors.email} />
                             </div>
@@ -88,13 +88,13 @@ export default function Login({
 
                             <Button
                                 type="submit"
-                                className="mt-4 w-full"
+                                className="mt-4 w-full bg-[#101820] font-bold hover:bg-[#1d2a3a]"
                                 tabIndex={4}
                                 disabled={processing}
                                 data-test="login-button"
                             >
                                 {processing && <Spinner />}
-                                Log in
+                                Sign in
                             </Button>
                         </div>
 
