@@ -684,6 +684,12 @@ class LivestreamController extends Controller
             'id' => $playerId,
             'name' => trim(Arr::get($player, 'firstName', '').' '.Arr::get($player, 'lastName', '')),
             'role' => $roles ? implode(' / ', $roles) : 'Player',
+            'status' => Arr::get($player, 'outStringNoLink') ?: (Arr::get($player, 'isOut') === '1' ? 'out' : 'not out'),
+            'runs' => Arr::get($player, 'runsScored', ''),
+            'balls' => Arr::get($player, 'ballsFaced', ''),
+            'fours' => Arr::get($player, 'fours', ''),
+            'sixes' => Arr::get($player, 'sixers', ''),
+            'strikeRate' => Arr::get($player, 'strikeRate', ''),
             'image' => Arr::get($player, 'profilepic_file_path'),
         ];
     }
