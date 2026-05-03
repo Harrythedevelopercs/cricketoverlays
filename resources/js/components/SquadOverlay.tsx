@@ -117,6 +117,17 @@ const isDismissed = (status?: string) => {
 const statValue = (value: unknown) =>
     value === null || value === undefined || value === '' ? '-' : String(value);
 
+const decodeText = (value?: string) => {
+    return String(value || '')
+        .replace(/&#8224;/g, '†')
+        .replace(/&amp;/g, '&')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'")
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
 const numericValue = (value: unknown): number => {
     if (typeof value === 'number') {
         return value;
@@ -140,6 +151,12 @@ const numericValue = (value: unknown): number => {
     }
 
     return 0;
+};
+
+const isDidNotBat = (status?: string) => {
+    const value = status?.toLowerCase() || '';
+
+    return value === 'dnb' || value.includes('yet to bat');
 };
 
 export default function SquadOverlay({
@@ -231,7 +248,7 @@ export default function SquadOverlay({
                             <div className="mb-2 inline-flex rounded bg-[#f5c542] px-4 py-1 text-xs font-black tracking-[0.28em] text-black uppercase">
                                 Batting Card
                             </div>
-                            <h1 className="truncate text-[48px] leading-none font-black tracking-tight uppercase">
+                            <h1 className="truncate text-[44px] leading-none font-black tracking-tight uppercase">
                                 {displayTeamName}
                             </h1>
                         </div>
@@ -241,7 +258,7 @@ export default function SquadOverlay({
                                 <span className="text-xs font-black tracking-[0.25em] text-slate-400 uppercase">
                                     Total
                                 </span>
-                                <span className="mt-1 text-5xl font-black">
+                                <span className="mt-1 text-[46px] leading-none font-black whitespace-nowrap">
                                     {displayRuns}-{displayWickets}
                                 </span>
                             </div>
@@ -249,14 +266,14 @@ export default function SquadOverlay({
                                 <span className="text-xs font-black tracking-[0.25em] text-slate-400 uppercase">
                                     Overs
                                 </span>
-                                <span className="mt-1 text-5xl font-black">
+                                <span className="mt-1 text-[46px] leading-none font-black whitespace-nowrap">
                                     {displayOvers}
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-[360px_1fr_90px_90px_80px_80px] border-b border-white/10 bg-[#0b111b]/95 px-7 py-3 text-xs font-black tracking-[0.24em] text-slate-400 uppercase">
+                    <div className="grid grid-cols-[360px_1fr_96px_96px_78px_78px] border-b border-white/10 bg-[#0b111b]/95 px-7 py-3 text-xs font-black tracking-[0.24em] text-slate-400 uppercase">
                         <div>Batter</div>
                         <div>How out / details</div>
                         <div className="text-center">Runs</div>
@@ -269,18 +286,20 @@ export default function SquadOverlay({
                         {displayPlayers.map((player: any, index: number) => {
                             const active = isActiveBatter(player.status);
                             const dismissed = isDismissed(player.status);
+                            const didNotBat = isDidNotBat(player.status);
+                            const playerStatus = decodeText(player.status);
 
                             return (
                                 <div
                                     key={player.id || `${player.name}-${index}`}
-                                    className={`grid grid-cols-[360px_1fr_90px_90px_80px_80px] items-center border-b border-white/[0.07] px-7 ${active ? 'bg-[#f5c542]/16' : dismissed ? 'bg-white/[0.045]' : index % 2 === 0 ? 'bg-black/[0.12]' : 'bg-white/[0.025]'}`}
+                                    className={`grid grid-cols-[360px_1fr_96px_96px_78px_78px] items-center border-b border-white/[0.07] px-7 ${active ? 'bg-[#f5c542]/18' : dismissed ? 'bg-white/[0.04]' : index % 2 === 0 ? 'bg-black/[0.14]' : 'bg-white/[0.025]'}`}
                                     style={{
                                         animation: `scorecardRowIn 0.42s ease-out forwards ${index * 0.04}s`,
                                         opacity: 0,
                                     }}
                                 >
                                     <div className="min-w-0 pr-6">
-                                        <div className="truncate text-[26px] leading-none font-black tracking-wide uppercase">
+                                        <div className="truncate text-[24px] leading-none font-black tracking-wide uppercase">
                                             {player.name ||
                                                 `Player ${index + 1}`}
                                         </div>
@@ -289,44 +308,54 @@ export default function SquadOverlay({
                                         </div>
                                     </div>
 
-                                    <div className="min-w-0 truncate pr-6 text-[21px] font-bold tracking-wide text-slate-200 uppercase">
-                                        {player.status || 'yet to bat'}
+                                    <div
+                                        className={`min-w-0 truncate pr-6 text-[20px] font-bold tracking-wide uppercase ${active ? 'text-[#f5c542]' : didNotBat ? 'text-slate-500' : 'text-slate-200'}`}
+                                    >
+                                        {playerStatus || 'yet to bat'}
                                     </div>
 
                                     <div className="text-center text-[30px] font-black">
-                                        {statValue(player.runs)}
+                                        {didNotBat
+                                            ? '-'
+                                            : statValue(player.runs)}
                                     </div>
                                     <div className="text-center text-[30px] font-black text-slate-200">
-                                        {statValue(player.balls)}
+                                        {didNotBat
+                                            ? '-'
+                                            : statValue(player.balls)}
                                     </div>
                                     <div className="text-center text-[24px] font-black text-slate-300">
-                                        {statValue(player.fours)}
+                                        {didNotBat
+                                            ? '-'
+                                            : statValue(player.fours)}
                                     </div>
                                     <div className="text-center text-[24px] font-black text-slate-300">
-                                        {statValue(player.sixes)}
+                                        {didNotBat
+                                            ? '-'
+                                            : statValue(player.sixes)}
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
 
-                    <div className="grid h-16 grid-cols-[190px_190px_1fr_210px_230px_240px] items-center border-t border-white/15 bg-[#e8ebef] text-black">
-                        <div className="px-8 text-2xl font-black uppercase">
+                    <div className="grid h-16 grid-cols-[190px_190px_1fr_210px_230px_260px] items-center border-t border-white/15 bg-[#e8ebef] text-black">
+                        <div className="px-8 text-[25px] font-black uppercase">
                             Extras {extrasRuns}
                         </div>
-                        <div className="flex h-full items-center justify-center border-l border-black/15 text-2xl font-black uppercase">
+                        <div className="flex h-full items-center justify-center border-l border-black/15 text-[25px] font-black uppercase">
                             RR {displayRunRate}
                         </div>
-                        <div className="flex h-full items-center justify-center border-l border-black/15 text-2xl font-black uppercase">
+                        <div className="flex h-full items-center justify-center border-l border-black/15 text-[25px] font-black uppercase">
                             Balls {totalBalls}
                         </div>
-                        <div className="flex h-full items-center justify-center border-l border-black/15 text-2xl font-black uppercase">
+                        <div className="flex h-full items-center justify-center border-l border-black/15 text-[25px] font-black uppercase">
                             Overs {displayOvers}
                         </div>
-                        <div className="flex h-full items-center justify-center border-l border-black/15 text-2xl font-black uppercase">
+                        <div className="flex h-full items-center justify-center border-l border-black/15 text-[25px] font-black uppercase">
                             RRR {displayRequiredRunRate}
                         </div>
-                        <div className="flex h-full items-center justify-center border-l border-black/15 text-4xl font-black">
+                        <div className="flex h-full items-center justify-center border-l border-black/15 text-[42px] leading-none font-black">
                             {displayRuns}-{displayWickets}
                         </div>
                     </div>
