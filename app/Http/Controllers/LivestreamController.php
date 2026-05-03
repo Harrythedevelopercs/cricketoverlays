@@ -8,7 +8,9 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class LivestreamController extends Controller
 {
@@ -99,6 +101,15 @@ class LivestreamController extends Controller
         return inertia('live', [
             'livestream' => $livestream,
         ]);
+    }
+
+    public function overlayEvent($streamID)
+    {
+        Livestream::where('live_stream_id', $streamID)->firstOrFail();
+
+        return response()->json(
+            Cache::get($this->overlayEventCacheKey($streamID), [])
+        );
     }
 
     public function scorebarData($streamID)
@@ -1173,15 +1184,35 @@ class LivestreamController extends Controller
         return $livestream->team_two_title;
     }
 
+    private function overlayEventCacheKey(string $streamID): string
+    {
+        return 'livestream:'.$streamID.':overlay-event';
+    }
+
+    private function dispatchOverlayEvent(Livestream $livestream, string $type): void
+    {
+        $payload = [
+            'type' => $type,
+            'id' => $livestream->id,
+            'nonce' => (string) Str::uuid(),
+            'createdAt' => now()->timestamp,
+            'livestream' => $livestream,
+        ];
+
+        Cache::put(
+            $this->overlayEventCacheKey($livestream->live_stream_id),
+            $payload,
+            now()->addMinutes(10)
+        );
+
+        event(new ScoreboardUpdated($payload));
+    }
+
     public function four($streamID)
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'FOUR',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'FOUR');
 
         return response()->noContent();
     }
@@ -1190,11 +1221,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'SIX',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'SIX');
 
         return response()->noContent();
     }
@@ -1203,11 +1230,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'WICKET',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'WICKET');
 
         return response()->noContent();
     }
@@ -1216,11 +1239,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'SQUAD_ONE_LIST',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'SQUAD_ONE_LIST');
 
         return response()->noContent();
     }
@@ -1229,11 +1248,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'SQUAD_TWO_LIST',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'SQUAD_TWO_LIST');
 
         return response()->noContent();
     }
@@ -1242,11 +1257,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'MATCH_INTRO',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'MATCH_INTRO');
 
         return response()->noContent();
     }
@@ -1255,11 +1266,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'INNINGS_BREAK',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'INNINGS_BREAK');
 
         return response()->noContent();
     }
@@ -1268,11 +1275,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'DRINKS_BREAK',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'DRINKS_BREAK');
 
         return response()->noContent();
     }
@@ -1281,11 +1284,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'BATSMAN_STATS',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'BATSMAN_STATS');
 
         return response()->noContent();
     }
@@ -1294,11 +1293,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'RUNNER_STATS',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'RUNNER_STATS');
 
         return response()->noContent();
     }
@@ -1307,11 +1302,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'BATSMAN_CAREER',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'BATSMAN_CAREER');
 
         return response()->noContent();
     }
@@ -1320,11 +1311,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'RUNNER_CAREER',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'RUNNER_CAREER');
 
         return response()->noContent();
     }
@@ -1333,11 +1320,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'BOWLER_CAREER',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'BOWLER_CAREER');
 
         return response()->noContent();
     }
@@ -1346,11 +1329,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'PARTNERSHIP',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'PARTNERSHIP');
 
         return response()->noContent();
     }
@@ -1359,11 +1338,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'THIS_OVER',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'THIS_OVER');
 
         return response()->noContent();
     }
@@ -1372,11 +1347,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'WORM',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'WORM');
 
         return response()->noContent();
     }
@@ -1385,11 +1356,7 @@ class LivestreamController extends Controller
     {
         $livestream = Livestream::where('live_stream_id', $streamID)->firstOrFail();
 
-        event(new ScoreboardUpdated([
-            'type' => 'OVER_BY_OVER',
-            'id' => $livestream->id,
-            'livestream' => $livestream,
-        ]));
+        $this->dispatchOverlayEvent($livestream, 'OVER_BY_OVER');
 
         return response()->noContent();
     }

@@ -35,6 +35,8 @@ class ScoreboardUpdated implements ShouldBroadcastNow
     {
         return [
             'type' => $this->data['type'],
+            'nonce' => $this->data['nonce'] ?? null,
+            'createdAt' => $this->data['createdAt'] ?? null,
             'livestream' => $this->data['livestream'],
         ];
     }

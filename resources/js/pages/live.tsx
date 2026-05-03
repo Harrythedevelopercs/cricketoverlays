@@ -16,6 +16,7 @@ import echo from '@/echo';
 import Overlay from './Overlay';
 
 const SCOREBAR_REFRESH_MS = 1000;
+const OVERLAY_EVENT_POLL_MS = 1000;
 const OVERLAY_AUTO_HIDE_MS = 5000;
 
 export default function Live({ livestream }: { livestream: any }) {
@@ -61,6 +62,7 @@ export default function Live({ livestream }: { livestream: any }) {
     const inningsBreakTimeoutRef = useRef<number | null>(null);
     const drinksBreakTimeoutRef = useRef<number | null>(null);
     const scorebarRequestInFlightRef = useRef(false);
+    const lastOverlayEventNonceRef = useRef<string | null>(null);
 
     const fallbackPartnershipData = () => ({
         title: livestream?.title || 'Match Partnership',
@@ -530,6 +532,104 @@ export default function Live({ livestream }: { livestream: any }) {
         scheduleOverlayHide(overByOverTimeoutRef);
     };
 
+    const handleScoreboardEvent = (e: any, source = 'websocket') => {
+        if (!e?.type) {
+            return;
+        }
+
+        if (e.nonce && lastOverlayEventNonceRef.current === e.nonce) {
+            return;
+        }
+
+        if (e.nonce) {
+            lastOverlayEventNonceRef.current = e.nonce;
+        }
+
+        console.info(`ScoreboardUpdated received via ${source}`, e.type);
+        setData(e.livestream);
+
+        if (e.type === 'FOUR' || e.type === 'SIX' || e.type === 'WICKET') {
+            hideActiveOverlays();
+            setEventType(e.type);
+
+            eventTimeoutRef.current = window.setTimeout(
+                () => setEventType(null),
+                OVERLAY_AUTO_HIDE_MS,
+            );
+        }
+
+        if (e.type === 'SQUAD_ONE_LIST') {
+            openSquad('one');
+        }
+
+        if (e.type === 'SQUAD_TWO_LIST') {
+            openSquad('two');
+        }
+
+        if (e.type === 'MATCH_INTRO') {
+            hideActiveOverlays();
+            setShowVersus(true);
+            versusTimeoutRef.current = window.setTimeout(
+                () => setShowVersus(false),
+                OVERLAY_AUTO_HIDE_MS,
+            );
+        }
+
+        if (e.type === 'INNINGS_BREAK') {
+            hideActiveOverlays();
+            setShowInningsBreak(true);
+            inningsBreakTimeoutRef.current = window.setTimeout(
+                () => setShowInningsBreak(false),
+                OVERLAY_AUTO_HIDE_MS,
+            );
+        }
+
+        if (e.type === 'DRINKS_BREAK') {
+            hideActiveOverlays();
+            setShowDrinksBreak(true);
+            drinksBreakTimeoutRef.current = window.setTimeout(
+                () => setShowDrinksBreak(false),
+                OVERLAY_AUTO_HIDE_MS,
+            );
+        }
+
+        if (e.type === 'BATSMAN_STATS') {
+            openBatsmanStats();
+        }
+
+        if (e.type === 'RUNNER_STATS') {
+            openRunnerStats();
+        }
+
+        if (e.type === 'BATSMAN_CAREER') {
+            openBatsmanCareer();
+        }
+
+        if (e.type === 'RUNNER_CAREER') {
+            openRunnerCareer();
+        }
+
+        if (e.type === 'BOWLER_CAREER') {
+            openBowlerCareer();
+        }
+
+        if (e.type === 'PARTNERSHIP') {
+            openPartnership();
+        }
+
+        if (e.type === 'THIS_OVER') {
+            openThisOver();
+        }
+
+        if (e.type === 'WORM') {
+            openWorm();
+        }
+
+        if (e.type === 'OVER_BY_OVER') {
+            openOverByOver();
+        }
+    };
+
     useEffect(() => {
         let isMounted = true;
 
@@ -580,92 +680,50 @@ export default function Live({ livestream }: { livestream: any }) {
     }, [livestream.live_stream_id]);
 
     useEffect(() => {
+        let isMounted = true;
+
+        const fetchOverlayEvent = async () => {
+            try {
+                const response = await fetch(
+                    `/live/${livestream.live_stream_id}/overlay-event`,
+                    {
+                        cache: 'no-store',
+                        headers: {
+                            Accept: 'application/json',
+                        },
+                    },
+                );
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const overlayEvent = await response.json();
+
+                if (isMounted && overlayEvent?.type) {
+                    handleScoreboardEvent(overlayEvent, 'polling');
+                }
+            } catch (error) {
+                console.log(error);
+            }
+        };
+
+        const interval = window.setInterval(
+            fetchOverlayEvent,
+            OVERLAY_EVENT_POLL_MS,
+        );
+
+        return () => {
+            isMounted = false;
+            window.clearInterval(interval);
+        };
+    }, [livestream.live_stream_id]);
+
+    useEffect(() => {
         const channel = echo.channel(`livestream.${livestream.id}`);
 
         channel.listen('.ScoreboardUpdated', (e: any) => {
-            console.info('ScoreboardUpdated received', e.type);
-            setData(e.livestream);
-
-            if (e.type === 'FOUR' || e.type === 'SIX' || e.type === 'WICKET') {
-                hideActiveOverlays();
-                setEventType(e.type);
-
-                eventTimeoutRef.current = window.setTimeout(
-                    () => setEventType(null),
-                    OVERLAY_AUTO_HIDE_MS,
-                );
-            }
-
-            if (e.type === 'SQUAD_ONE_LIST') {
-                openSquad('one');
-            }
-
-            if (e.type === 'SQUAD_TWO_LIST') {
-                openSquad('two');
-            }
-
-            if (e.type === 'MATCH_INTRO') {
-                hideActiveOverlays();
-                setShowVersus(true);
-                versusTimeoutRef.current = window.setTimeout(
-                    () => setShowVersus(false),
-                    OVERLAY_AUTO_HIDE_MS,
-                );
-            }
-
-            if (e.type === 'INNINGS_BREAK') {
-                hideActiveOverlays();
-                setShowInningsBreak(true);
-                inningsBreakTimeoutRef.current = window.setTimeout(
-                    () => setShowInningsBreak(false),
-                    OVERLAY_AUTO_HIDE_MS,
-                );
-            }
-
-            if (e.type === 'DRINKS_BREAK') {
-                hideActiveOverlays();
-                setShowDrinksBreak(true);
-                drinksBreakTimeoutRef.current = window.setTimeout(
-                    () => setShowDrinksBreak(false),
-                    OVERLAY_AUTO_HIDE_MS,
-                );
-            }
-
-            if (e.type === 'BATSMAN_STATS') {
-                openBatsmanStats();
-            }
-
-            if (e.type === 'RUNNER_STATS') {
-                openRunnerStats();
-            }
-
-            if (e.type === 'BATSMAN_CAREER') {
-                openBatsmanCareer();
-            }
-
-            if (e.type === 'RUNNER_CAREER') {
-                openRunnerCareer();
-            }
-
-            if (e.type === 'BOWLER_CAREER') {
-                openBowlerCareer();
-            }
-
-            if (e.type === 'PARTNERSHIP') {
-                openPartnership();
-            }
-
-            if (e.type === 'THIS_OVER') {
-                openThisOver();
-            }
-
-            if (e.type === 'WORM') {
-                openWorm();
-            }
-
-            if (e.type === 'OVER_BY_OVER') {
-                openOverByOver();
-            }
+            handleScoreboardEvent(e);
         });
 
         return () => {

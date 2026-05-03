@@ -9,6 +9,7 @@ Route::inertia('/', 'welcome', [
 ])->name('home');
 
 Route::get('live/{streamID}', [LivestreamController::class, 'live'])->name('livestream.live');
+Route::get('live/{streamID}/overlay-event', [LivestreamController::class, 'overlayEvent'])->name('livestream.overlay-event');
 Route::get('live/{streamID}/scorebar-data', [LivestreamController::class, 'scorebarData'])->name('livestream.scorebar-data');
 Route::get('live/{streamID}/squad/{team}', [LivestreamController::class, 'squadData'])->name('livestream.squad-data');
 Route::get('live/{streamID}/current-batter-stats', [LivestreamController::class, 'currentBatterStats'])->name('livestream.current-batter-stats');
