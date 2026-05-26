@@ -20,11 +20,11 @@ Route::get('live/{streamID}/current-bowler-career', [LivestreamController::class
 Route::get('live/{streamID}/worm-data', [LivestreamController::class, 'wormData'])->name('livestream.worm-data');
 Route::get('live/{streamID}/partnership-data', [LivestreamController::class, 'partnershipData'])->name('livestream.partnership-data');
 Route::get('live/{streamID}/this-over-data', [LivestreamController::class, 'thisOverData'])->name('livestream.this-over-data');
+Route::get('old-matches', [LivestreamController::class, 'oldMatches'])->name('old-matches');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
     Route::inertia('createstream', 'createstream')->name('createstream');
-    Route::get('old-matches', [LivestreamController::class, 'oldMatches'])->name('old-matches');
     Route::post('createlivestream', [LivestreamController::class, 'store'])->name('livestream.store');
     Route::get('/livestream/{streamID}', [LivestreamController::class, 'show'])->name('livestream.show');
     Route::post('/livestream/four/{id}', [LivestreamController::class, 'four']);
