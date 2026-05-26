@@ -21,6 +21,10 @@ type CreateStreamResponse = {
     errors?: Record<string, string[]>;
 };
 
+const maxLogoSizeMb = 5;
+const maxLogoSizeBytes = maxLogoSizeMb * 1024 * 1024;
+const allowedLogoTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
 const csrfToken = () =>
     document
         .querySelector('meta[name="csrf-token"]')
@@ -37,6 +41,18 @@ const responseErrors = (
     return validationErrors.length
         ? validationErrors
         : [data?.message || fallback];
+};
+
+const logoFileError = (file: File, label: string) => {
+    if (!allowedLogoTypes.includes(file.type)) {
+        return `${label} JPG, PNG, ya WEBP honi chahiye.`;
+    }
+
+    if (file.size > maxLogoSizeBytes) {
+        return `${label} ${maxLogoSizeMb}MB ya us se choti honi chahiye.`;
+    }
+
+    return null;
 };
 
 export default function Createstream() {
@@ -61,13 +77,25 @@ export default function Createstream() {
     const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
 
-        if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+        if (!file) {
+            return;
         }
+
+        const error = logoFileError(file, 'Team One logo');
+
+        if (error) {
+            setErrors([error]);
+            setPreview(null);
+            e.target.value = '';
+            return;
+        }
+
+        setErrors([]);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
     };
 
     const [previewTwo, setPreviewTwo] = useState<string | null>(null);
@@ -80,13 +108,25 @@ export default function Createstream() {
     const handleImageChangeTwo = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
 
-        if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPreviewTwo(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+        if (!file) {
+            return;
         }
+
+        const error = logoFileError(file, 'Team Two logo');
+
+        if (error) {
+            setErrors([error]);
+            setPreviewTwo(null);
+            e.target.value = '';
+            return;
+        }
+
+        setErrors([]);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setPreviewTwo(reader.result as string);
+        };
+        reader.readAsDataURL(file);
     };
 
     const createLiveStream = async (e: FormEvent<HTMLFormElement>) => {
@@ -179,7 +219,7 @@ export default function Createstream() {
                                     id="teamOneLogo"
                                     name="teamOneLogo"
                                     ref={fileInputRef}
-                                    accept="image/*"
+                                    accept="image/jpeg,image/png,image/webp"
                                     onChange={handleImageChange}
                                     className="hidden"
                                 />
@@ -308,7 +348,7 @@ export default function Createstream() {
                                     id="teamTwoLogo"
                                     name="teamTwoLogo"
                                     ref={fileInputRefTwo}
-                                    accept="image/*"
+                                    accept="image/jpeg,image/png,image/webp"
                                     onChange={handleImageChangeTwo}
                                     className="hidden"
                                 />

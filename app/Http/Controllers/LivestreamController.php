@@ -11,6 +11,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class LivestreamController extends Controller
 {
@@ -23,19 +24,40 @@ class LivestreamController extends Controller
                 'teamTwoName' => 'required|string|max:255',
                 'teamOneID' => 'required|numeric',
                 'teamTwoID' => 'required|numeric',
-                'teamOneLogo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-                'teamTwoLogo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+                'teamOneLogo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+                'teamTwoLogo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            ], [
+                'teamOneLogo.image' => 'Team One logo must be a valid image.',
+                'teamOneLogo.mimes' => 'Team One logo must be JPG, JPEG, PNG, or WEBP.',
+                'teamOneLogo.max' => 'Team One logo must be 5MB or smaller.',
+                'teamTwoLogo.image' => 'Team Two logo must be a valid image.',
+                'teamTwoLogo.mimes' => 'Team Two logo must be JPG, JPEG, PNG, or WEBP.',
+                'teamTwoLogo.max' => 'Team Two logo must be 5MB or smaller.',
             ]);
 
             // ✅ Upload Images
             $teamOneLogo = null;
             if ($request->hasFile('teamOneLogo')) {
                 $teamOneLogo = $request->file('teamOneLogo')->store('livestream', 'public');
+
+                if (! $teamOneLogo) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Team One logo upload failed. Please try again.',
+                    ], 500);
+                }
             }
 
             $teamTwoLogo = null;
             if ($request->hasFile('teamTwoLogo')) {
                 $teamTwoLogo = $request->file('teamTwoLogo')->store('livestream', 'public');
+
+                if (! $teamTwoLogo) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Team Two logo upload failed. Please try again.',
+                    ], 500);
+                }
             }
 
             // ✅ Save Data
@@ -77,10 +99,16 @@ class LivestreamController extends Controller
                 'data' => $livestream->live_stream_id,
             ]);
 
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Please fix the highlighted errors.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'message' => $e->getMessage(),
+                'message' => $e->getMessage() ?: 'Unable to create livestream.',
             ], 500);
         }
     }
