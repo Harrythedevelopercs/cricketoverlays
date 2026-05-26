@@ -30,6 +30,12 @@ const csrfToken = () =>
         .querySelector('meta[name="csrf-token"]')
         ?.getAttribute('content') || '';
 
+const sameOriginPath = (url: string) => {
+    const parsedUrl = new URL(url, window.location.origin);
+
+    return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+};
+
 const responseErrors = (
     data: CreateStreamResponse | null,
     fallback: string,
@@ -136,14 +142,18 @@ export default function Createstream() {
         setIsSubmitting(true);
 
         try {
-            const response = await fetch(livestreamRoute.store.url(), {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken(),
-                    Accept: 'application/json',
+            const response = await fetch(
+                sameOriginPath(livestreamRoute.store.url()),
+                {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken(),
+                        Accept: 'application/json',
+                    },
+                    credentials: 'same-origin',
+                    body: formData,
                 },
-                body: formData,
-            });
+            );
 
             const data = (await response
                 .json()
