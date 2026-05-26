@@ -183,7 +183,7 @@ class LivestreamController extends Controller
                 ];
             });
 
-        return inertia('oldmatches', [
+        return inertia('OldMatches', [
             'matches' => $matches,
         ]);
     }
