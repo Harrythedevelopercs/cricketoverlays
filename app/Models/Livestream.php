@@ -52,4 +52,9 @@ class Livestream extends Model
         'team_one_squad' => 'array',
         'team_two_squad' => 'array',
     ];
+
+    public function balls()
+    {
+        return $this->hasMany(LivestreamBall::class);
+    }
 }

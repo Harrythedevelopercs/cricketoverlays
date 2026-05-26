@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Events\ScoreboardUpdated;
 use App\Models\Livestream;
+use App\Models\LivestreamBall;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Request;
@@ -189,6 +190,8 @@ class LivestreamController extends Controller
             ], 502);
         }
 
+        $this->persistBallByBallData($livestream, Arr::get($payload, 'data', []));
+
         $scorecardData = [];
 
         if ($scorecardResponse->successful() && Arr::get($scorecardResponse->json(), 'responseState')) {
@@ -330,6 +333,8 @@ class LivestreamController extends Controller
             ], 502);
         }
 
+        $this->persistBallByBallData($livestream, Arr::get($scorebarPayload, 'data', []));
+
         $scorebarData = $this->normalizeScorebarData($livestream, Arr::get($scorebarPayload, 'data', []), Arr::get($scorecardPayload, 'data', []));
         $player = $role === 'runner'
             ? $this->currentRunnerFromScorebar($scorebarData)
@@ -397,6 +402,8 @@ class LivestreamController extends Controller
             ], 502);
         }
 
+        $this->persistBallByBallData($livestream, Arr::get($payload, 'data', []));
+
         return response()->json($this->normalizeWormData($livestream, Arr::get($payload, 'data', [])));
     }
 
@@ -438,6 +445,8 @@ class LivestreamController extends Controller
                 'message' => Arr::get($payload, 'errorMessage', 'CricClubs returned an invalid partnership response.'),
             ], 502);
         }
+
+        $this->persistBallByBallData($livestream, Arr::get($payload, 'data', []));
 
         return response()->json($this->normalizePartnershipData($livestream, Arr::get($payload, 'data', [])));
     }
@@ -481,6 +490,8 @@ class LivestreamController extends Controller
             ], 502);
         }
 
+        $this->persistBallByBallData($livestream, Arr::get($payload, 'data', []));
+
         return response()->json($this->normalizeThisOverData($livestream, Arr::get($payload, 'data', [])));
     }
 
@@ -522,6 +533,8 @@ class LivestreamController extends Controller
                 'message' => Arr::get($scorebarPayload, 'errorMessage', 'CricClubs returned an invalid scorebar response.'),
             ], 502);
         }
+
+        $this->persistBallByBallData($livestream, Arr::get($scorebarPayload, 'data', []));
 
         $scorebarData = $this->normalizeScorebarData($livestream, Arr::get($scorebarPayload, 'data', []));
         $player = match ($role) {
@@ -978,6 +991,113 @@ class LivestreamController extends Controller
         });
 
         return $balls;
+    }
+
+    private function persistBallByBallData(Livestream $livestream, array $data): void
+    {
+        $rows = [];
+        $now = now();
+
+        foreach (['innings1Balls', 'innings2Balls', 'innings3Balls', 'innings4Balls'] as $inningsIndex => $inningsKey) {
+            $innings = Arr::get($data, $inningsKey);
+
+            if (! is_array($innings)) {
+                continue;
+            }
+
+            $oversMap = Arr::get($innings, 'oversMap', []);
+
+            if (! is_array($oversMap)) {
+                continue;
+            }
+
+            foreach ($oversMap as $overIndex => $over) {
+                foreach (Arr::get($over, 'balls', []) as $ballIndex => $ball) {
+                    if (! is_array($ball)) {
+                        continue;
+                    }
+
+                    $overNumber = Arr::get($ball, 'over', Arr::get($over, 'overNum'));
+                    $ballNumber = Arr::get($ball, 'ball');
+                    $runs = Arr::get($ball, 'runs');
+
+                    $rows[] = [
+                        'livestream_id' => $livestream->id,
+                        'match_id' => $livestream->match_id,
+                        'club_id' => $livestream->club_id,
+                        'innings_number' => $inningsIndex + 1,
+                        'innings_key' => $inningsKey,
+                        'team_id' => Arr::get($innings, 'teamId'),
+                        'team_name' => Arr::get($innings, 'teamName'),
+                        'over_number' => is_numeric($overNumber) ? (int) $overNumber : null,
+                        'ball_number' => is_numeric($ballNumber) ? (int) $ballNumber : null,
+                        'delivery_key' => $this->ballDeliveryKey(
+                            $livestream,
+                            $inningsKey,
+                            $overNumber,
+                            $ballNumber,
+                            $ball,
+                            $overIndex,
+                            $ballIndex
+                        ),
+                        'runs' => is_numeric($runs) ? (int) $runs : null,
+                        'runs_display' => Arr::get($ball, 'runsDisplay'),
+                        'ball_type' => Arr::get($ball, 'ballType'),
+                        'striker_id' => Arr::get($ball, 'striker'),
+                        'bowler_id' => Arr::get($ball, 'bowler'),
+                        'commentary' => Arr::get($ball, 'commentary'),
+                        'raw_data' => json_encode($ball),
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+            }
+        }
+
+        foreach (array_chunk($rows, 500) as $chunk) {
+            LivestreamBall::upsert($chunk, ['delivery_key'], [
+                'match_id',
+                'club_id',
+                'innings_number',
+                'innings_key',
+                'team_id',
+                'team_name',
+                'over_number',
+                'ball_number',
+                'runs',
+                'runs_display',
+                'ball_type',
+                'striker_id',
+                'bowler_id',
+                'commentary',
+                'raw_data',
+                'updated_at',
+            ]);
+        }
+    }
+
+    private function ballDeliveryKey(
+        Livestream $livestream,
+        string $inningsKey,
+        $overNumber,
+        $ballNumber,
+        array $ball,
+        int|string $overIndex,
+        int|string $ballIndex
+    ): string {
+        $sourceId = Arr::get($ball, 'ballId')
+            ?? Arr::get($ball, 'ballID')
+            ?? Arr::get($ball, 'id')
+            ?? Arr::get($ball, 'commentaryId');
+
+        return hash('sha256', implode('|', [
+            $livestream->id,
+            $inningsKey,
+            $sourceId ?: $overIndex,
+            $overNumber,
+            $ballNumber,
+            $sourceId ? 'source' : $ballIndex,
+        ]));
     }
 
     private function isWicketBall(array $ball): bool
