@@ -337,7 +337,7 @@ function CenterScorebar({ data }: { data: any }) {
                 </div>
 
                 <div className="absolute top-0 left-1/2 flex h-[104px] w-[410px] -translate-x-1/2 overflow-hidden rounded-[2px] border border-black/20 shadow-[0_10px_22px_rgba(0,0,0,0.35)]">
-                    <div className="flex w-[55%] flex-col bg-gradient-to-br from-[#1c4da1] to-[#04235f] text-white">
+                    <div className="flex w-[55%] flex-col bg-gradient-to-br from-[#4b5563] to-[#111827] text-white">
                         <div className="flex h-[34px] items-center justify-center gap-2 border-b border-white/10 text-[27px] font-black tracking-wide">
                             <span>{battingShort}</span>
                             <span className="text-[18px] text-[#ffcc28]">
@@ -352,10 +352,10 @@ function CenterScorebar({ data }: { data: any }) {
                         </div>
                     </div>
                     <div className="flex w-[45%] flex-col">
-                        <div className="flex h-1/2 items-center justify-center bg-gradient-to-br from-[#1f8ed5] to-[#0f477d] text-[26px] font-black text-white">
+                        <div className="flex h-1/2 items-center justify-center bg-gradient-to-br from-[#6b7280] to-[#374151] text-[26px] font-black text-white">
                             RR {runRate}
                         </div>
-                        <div className="flex h-1/2 items-center justify-center bg-gradient-to-br from-[#d53624] to-[#8f100e] text-[27px] font-black text-white">
+                        <div className="flex h-1/2 items-center justify-center bg-gradient-to-br from-[#f97316] to-[#c2410c] text-[27px] font-black text-white">
                             OVERS {overs}
                         </div>
                     </div>
