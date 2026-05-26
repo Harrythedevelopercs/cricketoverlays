@@ -849,7 +849,10 @@ export default function Live({ livestream }: { livestream: any }) {
             />
 
             {/* Scoreboard */}
-            <Scorebar data={scorebarData ?? data} />
+            <Scorebar
+                data={scorebarData ?? data}
+                style={livestream?.scorebar_style ?? data?.scorebar_style}
+            />
         </div>
     );
 }

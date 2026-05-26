@@ -1,4 +1,16 @@
-export default function Scorebar({ data }: { data: any }) {
+export default function Scorebar({
+    data,
+    style,
+}: {
+    data: any;
+    style?: string;
+}) {
+    const selectedStyle = style || data?.scorebarStyle || data?.scorebar_style;
+
+    if (selectedStyle === 'center') {
+        return <CenterScorebar data={data} />;
+    }
+
     const teamOneLogo =
         data?.battingLogo ||
         (data?.team_one_logo
@@ -215,6 +227,145 @@ export default function Scorebar({ data }: { data: any }) {
                             <div className="absolute top-6 right-2 h-5 w-5 rotate-12 border-2 border-purple-500"></div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function CenterScorebar({ data }: { data: any }) {
+    const battingLogo =
+        data?.battingLogo ||
+        (data?.team_one_logo ? `/storage/${data.team_one_logo}` : null);
+    const bowlingLogo =
+        data?.bowlingLogo ||
+        (data?.team_two_logo ? `/storage/${data.team_two_logo}` : null);
+    const battingTeam = data?.battingTeam || data?.team_one_title || 'Team';
+    const bowlingTeam = data?.bowlingTeam || data?.team_two_title || 'Team';
+    const battingShort = battingTeam.slice(0, 3).toUpperCase();
+    const bowlingShort = bowlingTeam.slice(0, 3).toUpperCase();
+    const score = data?.score || '0-0';
+    const overs = data?.overs || '0.0';
+    const runRate = data?.runRate ?? '--';
+    const ticker =
+        data?.ticker || data?.title || `${battingTeam} vs ${bowlingTeam}`;
+    const batters = data?.batters?.length
+        ? data.batters
+        : [
+              { name: 'Batter 1', runs: 0, balls: 0, isStriker: true },
+              { name: 'Batter 2', runs: 0, balls: 0, isStriker: false },
+          ];
+    const bowler = data?.bowler || {
+        name: 'Bowler',
+        figures: '0-0',
+        overs: '0.0',
+    };
+
+    const batterSummary = (batter: any) =>
+        `${batter?.runs ?? 0} ${batter?.balls ?? 0}`;
+
+    return (
+        <div className="fixed right-0 bottom-5 left-0 z-50 flex justify-center pb-2 font-sans">
+            <div className="relative h-[118px] w-[1880px] max-w-[98vw] text-[#10151f] drop-shadow-2xl">
+                <div className="absolute top-[12px] right-0 left-0 h-[76px] bg-white/95 shadow-[0_6px_18px_rgba(0,0,0,0.22)] backdrop-blur-sm" />
+
+                <div className="absolute top-[12px] left-0 flex h-[76px] w-[740px] items-center border-r border-black/10 bg-white/95">
+                    <div className="flex h-full w-[72px] items-center justify-center bg-[#e7ebef]">
+                        {battingLogo ? (
+                            <img
+                                src={battingLogo}
+                                alt="Batting team"
+                                className="h-[58px] w-[58px] object-contain"
+                            />
+                        ) : (
+                            <span className="text-sm font-black">
+                                {battingShort}
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex min-w-0 flex-1 items-center justify-between gap-8 px-8">
+                        <div className="min-w-0">
+                            <div className="truncate text-[26px] font-black tracking-tight uppercase">
+                                {batters[0]?.isStriker ? '|' : ''}
+                                {batters[0]?.name}
+                            </div>
+                            <div className="truncate text-[16px] font-bold tracking-[0.12em] text-[#2b88bf] uppercase">
+                                {ticker}
+                            </div>
+                        </div>
+                        <div className="shrink-0 text-[28px] font-black text-[#188cc8]">
+                            {batterSummary(batters[0])}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="absolute top-[12px] right-0 flex h-[76px] w-[740px] items-center border-l border-black/10 bg-white/95">
+                    <div className="flex min-w-0 flex-1 items-center justify-between gap-8 px-8">
+                        <div className="min-w-0">
+                            <div className="truncate text-[26px] font-black tracking-tight uppercase">
+                                {bowler.name}
+                            </div>
+                            <div className="mt-1 flex items-center gap-4 text-[18px] font-black text-[#188cc8]">
+                                <span>{bowler.figures}</span>
+                                <span className="text-[#0f3758]">
+                                    {bowler.overs}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                            <div className="truncate text-[17px] font-black uppercase">
+                                {batters[1]?.name || 'Batter'}
+                            </div>
+                            <div className="text-[22px] font-black text-[#188cc8]">
+                                {batterSummary(batters[1])}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex h-full w-[72px] items-center justify-center bg-[#10151f]">
+                        {bowlingLogo ? (
+                            <img
+                                src={bowlingLogo}
+                                alt="Bowling team"
+                                className="h-[58px] w-[58px] object-contain"
+                            />
+                        ) : (
+                            <span className="text-sm font-black text-white">
+                                {bowlingShort}
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                <div className="absolute top-0 left-1/2 flex h-[104px] w-[410px] -translate-x-1/2 overflow-hidden rounded-[2px] border border-black/20 shadow-[0_10px_22px_rgba(0,0,0,0.35)]">
+                    <div className="flex w-[55%] flex-col bg-gradient-to-br from-[#1c4da1] to-[#04235f] text-white">
+                        <div className="flex h-[34px] items-center justify-center gap-2 border-b border-white/10 text-[27px] font-black tracking-wide">
+                            <span>{battingShort}</span>
+                            <span className="text-[18px] text-[#ffcc28]">
+                                v
+                            </span>
+                            <span className="text-[20px] text-white/55">
+                                {bowlingShort}
+                            </span>
+                        </div>
+                        <div className="flex flex-1 items-center justify-center text-[62px] leading-none font-black tracking-tight">
+                            {score}
+                        </div>
+                    </div>
+                    <div className="flex w-[45%] flex-col">
+                        <div className="flex h-1/2 items-center justify-center bg-gradient-to-br from-[#1f8ed5] to-[#0f477d] text-[26px] font-black text-white">
+                            RR {runRate}
+                        </div>
+                        <div className="flex h-1/2 items-center justify-center bg-gradient-to-br from-[#d53624] to-[#8f100e] text-[27px] font-black text-white">
+                            OVERS {overs}
+                        </div>
+                    </div>
+                    <div className="absolute top-0 bottom-0 left-[55%] w-[5px] -skew-x-12 bg-[#ffcc28]" />
+                </div>
+
+                <div className="absolute bottom-0 left-[48px] h-[30px] w-[700px] bg-white/90 text-center text-[20px] leading-[30px] font-black tracking-wide uppercase">
+                    {battingTeam}
+                    <span className="mx-3 text-[#188cc8]">vs</span>
+                    {bowlingTeam}
                 </div>
             </div>
         </div>

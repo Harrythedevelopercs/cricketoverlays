@@ -22,6 +22,7 @@ class Livestream extends Model
         'match_id',
         'club_id',
         'match_type',
+        'scorebar_style',
 
         // Team One
         'team_one_title',

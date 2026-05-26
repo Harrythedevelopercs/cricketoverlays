@@ -24,9 +24,11 @@ class LivestreamController extends Controller
                 'teamTwoName' => 'required|string|max:255',
                 'teamOneID' => 'required|numeric',
                 'teamTwoID' => 'required|numeric',
+                'scorebarStyle' => 'nullable|in:classic,center',
                 'teamOneLogo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
                 'teamTwoLogo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             ], [
+                'scorebarStyle.in' => 'Please select a valid scorebar style.',
                 'teamOneLogo.image' => 'Team One logo must be a valid image.',
                 'teamOneLogo.mimes' => 'Team One logo must be JPG, JPEG, PNG, or WEBP.',
                 'teamOneLogo.max' => 'Team One logo must be 5MB or smaller.',
@@ -73,6 +75,7 @@ class LivestreamController extends Controller
                 'match_id' => $request->matchId,
                 'club_id' => $request->clubId,
                 'match_type' => $request->MatchType,
+                'scorebar_style' => $request->input('scorebarStyle', 'classic'),
 
                 // Team One
                 'team_one_title' => $request->teamOneName,
@@ -615,6 +618,7 @@ class LivestreamController extends Controller
             'overs' => Arr::get($innings, 'overs', '0.0'),
             'runRate' => $runRate,
             'requiredRunRate' => $requiredRunRate,
+            'scorebarStyle' => $livestream->scorebar_style ?? 'classic',
             'battingLogo' => $battingLogo ? '/storage/'.$battingLogo : null,
             'bowlingLogo' => $bowlingLogo ? '/storage/'.$bowlingLogo : null,
             'batters' => $batters,

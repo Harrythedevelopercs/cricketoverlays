@@ -468,6 +468,56 @@ export default function Createstream() {
                             </div>
                         </div>
                     </div>
+
+                    <div className="grid gap-4 py-6.5 md:grid-cols-1">
+                        <div className="relative overflow-hidden rounded-xl border border-sidebar-border/70 bg-[#3f3b48]/10 p-5 duration-500 dark:border-sidebar-border">
+                            <div className="flex flex-col gap-4">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-[#3f3b48]">
+                                        Scorebar Style
+                                    </h3>
+                                    <p className="text-sm text-gray-600">
+                                        Stream ke liye scorebar design select
+                                        karein.
+                                    </p>
+                                </div>
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <label className="cursor-pointer rounded-lg border-2 border-[#3f3b48] bg-white p-4 shadow-sm transition has-[:checked]:bg-[#3f3b48] has-[:checked]:text-white">
+                                        <input
+                                            type="radio"
+                                            name="scorebarStyle"
+                                            value="classic"
+                                            defaultChecked
+                                            className="sr-only"
+                                        />
+                                        <span className="block text-base font-bold">
+                                            Option 1 - Classic
+                                        </span>
+                                        <span className="mt-1 block text-sm opacity-80">
+                                            Current dark/yellow broadcast
+                                            scorebar.
+                                        </span>
+                                    </label>
+                                    <label className="cursor-pointer rounded-lg border-2 border-[#3f3b48] bg-white p-4 shadow-sm transition has-[:checked]:bg-[#3f3b48] has-[:checked]:text-white">
+                                        <input
+                                            type="radio"
+                                            name="scorebarStyle"
+                                            value="center"
+                                            className="sr-only"
+                                        />
+                                        <span className="block text-base font-bold">
+                                            Option 2 - Center Score
+                                        </span>
+                                        <span className="mt-1 block text-sm opacity-80">
+                                            Center me score, sides par batters
+                                            aur bowler.
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="grid gap-4 py-6.5 md:grid-cols-1">
                         <div className="relative overflow-hidden rounded-xl border border-sidebar-border/70 bg-[#3f3b48] p-5 duration-500 dark:border-sidebar-border">
                             <div className="stroke-neutral-900/20 dark:stroke-neutral-100/20">
