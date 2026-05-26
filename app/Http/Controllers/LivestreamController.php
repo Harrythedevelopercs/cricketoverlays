@@ -135,6 +135,59 @@ class LivestreamController extends Controller
         ]);
     }
 
+    public function oldMatches()
+    {
+        $matches = Livestream::query()
+            ->withCount('balls')
+            ->latest()
+            ->paginate(10)
+            ->through(function (Livestream $livestream) {
+                $recentBalls = $livestream->balls()
+                    ->latest('id')
+                    ->limit(12)
+                    ->get();
+
+                return [
+                    'id' => $livestream->id,
+                    'title' => $livestream->title,
+                    'liveStreamId' => $livestream->live_stream_id,
+                    'matchId' => $livestream->match_id,
+                    'clubId' => $livestream->club_id,
+                    'matchType' => $livestream->match_type,
+                    'scorebarStyle' => $livestream->scorebar_style ?? 'classic',
+                    'status' => $livestream->match_status,
+                    'result' => $livestream->match_result,
+                    'teamOne' => [
+                        'name' => $livestream->team_one_title,
+                        'logo' => $livestream->team_one_logo ? '/storage/'.$livestream->team_one_logo : null,
+                    ],
+                    'teamTwo' => [
+                        'name' => $livestream->team_two_title,
+                        'logo' => $livestream->team_two_logo ? '/storage/'.$livestream->team_two_logo : null,
+                    ],
+                    'ballsCount' => $livestream->balls_count,
+                    'createdAt' => optional($livestream->created_at)->format('M d, Y h:i A'),
+                    'updatedAt' => optional($livestream->updated_at)->format('M d, Y h:i A'),
+                    'recentBalls' => $recentBalls
+                        ->map(fn (LivestreamBall $ball) => [
+                            'id' => $ball->id,
+                            'innings' => $ball->innings_number,
+                            'teamName' => $ball->team_name,
+                            'over' => $ball->over_number,
+                            'ball' => $ball->ball_number,
+                            'runs' => $ball->runs,
+                            'display' => $ball->runs_display,
+                            'type' => $ball->ball_type,
+                            'commentary' => $ball->commentary,
+                        ]),
+                ];
+            });
+
+        return inertia('oldmatches', [
+            'matches' => $matches,
+        ]);
+    }
+
     public function overlayEvent($streamID)
     {
         Livestream::where('live_stream_id', $streamID)->firstOrFail();
