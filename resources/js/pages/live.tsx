@@ -15,13 +15,14 @@ import WormOverlay from '@/components/WormOverlay';
 import echo from '@/echo';
 import Overlay from './Overlay';
 
-const SCOREBAR_REFRESH_MS = 1000;
+const SCOREBAR_REFRESH_MS = 5000;
 const OVERLAY_EVENT_POLL_MS = 1000;
 const OVERLAY_AUTO_HIDE_MS = 5000;
 
 export default function Live({ livestream }: { livestream: any }) {
     const [data, setData] = useState(livestream);
     const [scorebarData, setScorebarData] = useState<any>(null);
+    const [scorebarError, setScorebarError] = useState<string | null>(null);
     const [squadData, setSquadData] = useState<any>(null);
     const [batsmanStatsData, setBatsmanStatsData] = useState<any>(null);
     const [runnerStatsData, setRunnerStatsData] = useState<any>(null);
@@ -652,6 +653,19 @@ export default function Live({ livestream }: { livestream: any }) {
                 );
 
                 if (!response.ok) {
+                    let message = 'Scorebar data load nahi ho raha.';
+
+                    try {
+                        const errorData = await response.json();
+                        message = errorData?.message || message;
+                    } catch {
+                        // Keep the generic status if the backend did not send JSON.
+                    }
+
+                    if (isMounted) {
+                        setScorebarError(message);
+                    }
+
                     return;
                 }
 
@@ -659,9 +673,14 @@ export default function Live({ livestream }: { livestream: any }) {
 
                 if (isMounted) {
                     setScorebarData(nextScorebarData);
+                    setScorebarError(null);
                 }
             } catch (error) {
                 console.log(error);
+
+                if (isMounted) {
+                    setScorebarError('Scorebar data load nahi ho raha.');
+                }
             } finally {
                 scorebarRequestInFlightRef.current = false;
             }
@@ -853,6 +872,12 @@ export default function Live({ livestream }: { livestream: any }) {
                 data={scorebarData ?? data}
                 style={livestream?.scorebar_style ?? data?.scorebar_style}
             />
+
+            {scorebarError && !scorebarData && (
+                <div className="fixed top-5 left-1/2 z-[60] -translate-x-1/2 rounded border border-orange-400 bg-black/85 px-5 py-3 text-center text-sm font-bold tracking-wide text-orange-100 shadow-2xl">
+                    {scorebarError}
+                </div>
+            )}
         </div>
     );
 }
