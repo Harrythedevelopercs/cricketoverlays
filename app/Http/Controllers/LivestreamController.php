@@ -207,6 +207,74 @@ class LivestreamController extends Controller
             ], 422);
         }
 
+        $payloads = $this->cachedScorebarPayloads($livestream);
+
+        if (! Arr::get($payloads, 'ok')) {
+            return response()->json([
+                'message' => Arr::get($payloads, 'message', 'CricClubs scorebar request failed.'),
+            ], 502);
+        }
+
+        $payload = Arr::get($payloads, 'ballByBall', []);
+
+        if (! Arr::get($payload, 'responseState')) {
+            return response()->json([
+                'message' => Arr::get($payload, 'errorMessage', 'CricClubs returned an invalid response.'),
+            ], 502);
+        }
+
+        $this->persistBallByBallData($livestream, Arr::get($payload, 'data', []));
+
+        $scorecardData = [];
+        $scorecardPayload = Arr::get($payloads, 'scorecard', []);
+
+        if (Arr::get($scorecardPayload, 'responseState')) {
+            $scorecardData = Arr::get($scorecardPayload, 'data', []);
+        }
+
+        return response()->json([
+            ...$this->normalizeScorebarData($livestream, Arr::get($payload, 'data', []), $scorecardData),
+            'isStale' => Arr::get($payloads, 'stale', false),
+        ]);
+    }
+
+    private function cachedScorebarPayloads(Livestream $livestream): array
+    {
+        $freshCacheKey = "livestream:{$livestream->id}:scorebar-payload:fresh";
+        $staleCacheKey = "livestream:{$livestream->id}:scorebar-payload:stale";
+
+        $cached = Cache::get($freshCacheKey);
+
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $payloads = $this->fetchScorebarPayloads($livestream);
+
+        if (Arr::get($payloads, 'ok')) {
+            Cache::put($freshCacheKey, $payloads, now()->addSeconds(5));
+            Cache::put($staleCacheKey, $payloads, now()->addHours(2));
+
+            return $payloads;
+        }
+
+        $stalePayloads = Cache::get($staleCacheKey);
+
+        if (is_array($stalePayloads)) {
+            return [
+                ...$stalePayloads,
+                'stale' => true,
+                'message' => Arr::get($payloads, 'message'),
+            ];
+        }
+
+        Cache::put($freshCacheKey, $payloads, now()->addSeconds(20));
+
+        return $payloads;
+    }
+
+    private function fetchScorebarPayloads(Livestream $livestream): array
+    {
         $headers = [
             'x-consumer-key' => config('services.cricclubs.consumer_key'),
             'x-api-key' => config('services.cricclubs.api_key'),
@@ -224,34 +292,28 @@ class LivestreamController extends Controller
                 $pool->withHeaders($headers)->get(config('services.cricclubs.base_url').'/scoreCard/getScoreCard', $query),
             ]);
         } catch (ConnectionException $exception) {
-            return response()->json([
+            return [
+                'ok' => false,
                 'message' => 'Unable to connect to CricClubs.',
-            ], 502);
+            ];
         }
+
+        $payload = $response->json() ?? [];
+        $scorecardPayload = $scorecardResponse->json() ?? [];
 
         if (! $response->successful()) {
-            return response()->json([
-                'message' => 'CricClubs scorebar request failed.',
-            ], 502);
+            return [
+                'ok' => false,
+                'message' => Arr::get($payload, 'errorMessage', 'CricClubs scorebar request failed.'),
+                'status' => $response->status(),
+            ];
         }
 
-        $payload = $response->json();
-
-        if (! Arr::get($payload, 'responseState')) {
-            return response()->json([
-                'message' => Arr::get($payload, 'errorMessage', 'CricClubs returned an invalid response.'),
-            ], 502);
-        }
-
-        $this->persistBallByBallData($livestream, Arr::get($payload, 'data', []));
-
-        $scorecardData = [];
-
-        if ($scorecardResponse->successful() && Arr::get($scorecardResponse->json(), 'responseState')) {
-            $scorecardData = Arr::get($scorecardResponse->json(), 'data', []);
-        }
-
-        return response()->json($this->normalizeScorebarData($livestream, Arr::get($payload, 'data', []), $scorecardData));
+        return [
+            'ok' => true,
+            'ballByBall' => $payload,
+            'scorecard' => $scorecardPayload,
+        ];
     }
 
     public function squadData($streamID, $team)
